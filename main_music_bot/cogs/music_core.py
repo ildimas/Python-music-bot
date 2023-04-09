@@ -278,14 +278,7 @@ class music_core(commands.Cog):
             await interaction.send("Music succesfully stopped!")
         else:
             await interaction.send("You can't use this command")             
-    # @commands.slash_command(name="a-restart-server", description="This command will completly restart server (ONLY FOR ADMINISTRATORS)")
-    # async def stop_mus(self, interaction: disnake.CommandInteraction):
-    #     await interaction.response.defer()
-    #     if ((self.is_started) and (self.master == interaction.author.id) and (interaction.author.id in config.ADMINISTRATORS)):
-    #         n_process = "main.py"
-    #         os.execv(sys.executable, [sys.executable, n_process])
-    #     else:
-    #         await interaction.send("You can't use this command")
+            
     @commands.slash_command(name="q-add", description="Add songs to queue (Works only with /play-queue command)")
     async def add_to(self, interaction: disnake.CommandInteraction, index_or_indexes):
         await interaction.response.defer()

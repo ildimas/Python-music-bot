@@ -1,16 +1,23 @@
-import disnake; import sqlite3
+import disnake
+import sqlite3
 from disnake import Message, File
 from disnake.ext import commands
-import random; import os
+import random
+import os
 import asyncio
+import config
 from disnake import AudioSource
 from disnake import FFmpegAudio
 from disnake import Button, ButtonStyle, SelectMenu, SelectOption
 from disnake import ui
+from disnake.ext.commands import UserConverter
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 from utilities import *
 from pydrive.auth import * 
+import sys
+import signal
+import subprocess
 
 class music_core(commands.Cog):
     def __init__(self, bot):
@@ -21,10 +28,11 @@ class music_core(commands.Cog):
         self.is_canceled = False
         self.stop_continious_music = False
         self.q = []
+        self.playlist = []
         self.users = []
         self.master = None
     
-    @commands.slash_command(name="start", description="Use this command to start bot")
+    @commands.slash_command(name="a-start", description="Use this command to start bot")
     async def start(self, interaction: disnake.CommandInteraction):
         await interaction.response.defer()
         refactor_sqlite_db(interaction.author.id)
@@ -70,7 +78,7 @@ class music_core(commands.Cog):
             os.makedirs(self.directory)
         else: await interaction.send(f"Welcome back {interaction.author}, You are my master today!")
             
-    @commands.slash_command(name="next", description="Make bot stop music")
+    @commands.slash_command(name="a-next", description="Make bot stop music")
     async def next(self, interaction: disnake.CommandInteraction):
         await interaction.response.defer()
         if ((self.is_started) and (self.master == interaction.author.id)):
@@ -83,7 +91,7 @@ class music_core(commands.Cog):
                     return
         else: await interaction.send("You can't use this command")
                 
-    @commands.slash_command(name="show", description="Show list of avaliable songs")
+    @commands.slash_command(name="a-show", description="Show list of avaliable songs")
     async def show(self, interaction: disnake.CommandInteraction, number):
         await interaction.response.defer()
         if (self.is_started):
@@ -97,7 +105,27 @@ class music_core(commands.Cog):
             else: await interaction.send("Wrong number...")
         else: await interaction.send("You can't use this command use /start")  
         
-    @commands.slash_command(name="show_random", description="Show list of random avaliable songs")
+    @commands.slash_command(name="a-restart-server", description="Use this command if you want to stop the music")   
+    async def restart_bot(self, interaction: disnake.ApplicationCommandInteraction):
+        await interaction.response.defer()
+        if (interaction.author.id in config.ADMINISTRATORS):
+            await interaction.send("Restarting bot...")
+            try:
+                await self.voice_client.disconnect()
+            except:
+                pass
+            process = subprocess.Popen(["python", "main_music_bot\main.py"])
+            
+            pid = process.pid
+            
+            os.kill(pid, signal.SIGTERM)
+            
+            
+            os.execv(sys.executable, ['python'] + ["main_music_bot\main.py"]) 
+        else:
+            await interaction.send("You can't use this command use /start") 
+            
+    @commands.slash_command(name="a-show-random", description="Show list of random avaliable songs")
     async def exectue(self, interaction: disnake.CommandInteraction):
         await interaction.response.defer()
         if (self.is_started):
@@ -110,9 +138,9 @@ class music_core(commands.Cog):
                     break    
             await interaction.response.send_message(fin_stroke) 
         else:
-            await interaction.send("You can't use this command use /start")  
+            await interaction.send("You can't use this command use /start") 
     
-    @commands.slash_command(name="play", description="Play the single song, choose it using the index")
+    @commands.slash_command(name="p-play", description="Play the single song, choose it using the index")
     async def play(self, interaction: disnake.CommandInteraction, index):
         await interaction.response.defer()
         if ((self.is_started) and (self.master == interaction.author.id)):
@@ -142,7 +170,7 @@ class music_core(commands.Cog):
             await interaction.send("You can't use this command")            
         
             
-    @commands.slash_command(name="play_random", description="Bot will play random songs from your song list continiously")
+    @commands.slash_command(name="p-play-random", description="Bot will play random songs from your song list continiously")
     async def play_random(self, interaction: disnake.CommandInteraction):
         await interaction.response.defer()
         while True:
@@ -168,7 +196,7 @@ class music_core(commands.Cog):
             else:
                 await interaction.send("You can't use this command")  
                     
-    @commands.slash_command(name="play_continious", description="Bot will play the song with the entered index on repeat")
+    @commands.slash_command(name="p-play-continious", description="Bot will play the song with the entered index on repeat")
     async def play_cont(self, interaction: disnake.CommandInteraction, index):
         await interaction.response.defer()
         if ((self.is_started) and (self.master == interaction.author.id)):
@@ -198,7 +226,7 @@ class music_core(commands.Cog):
         else:
             await interaction.send("You can't use this command")
             
-    @commands.slash_command(name="play-queue", description="With this command you can listen to your msic queue")
+    @commands.slash_command(name="p-play-queue", description="With this command you can listen to your msic queue")
     async def execute(self, interaction: disnake.CommandInteraction):
         await interaction.response.defer()
         if ((self.is_started) and (self.master == interaction.author.id)):
@@ -213,7 +241,6 @@ class music_core(commands.Cog):
                         if self.stop_continious_music == True:
                             self.voice_client.stop()
                             self.stop_continious_music = False
-                            # self.q = []
                             return
                         else:
                             await asyncio.sleep(1)
@@ -225,7 +252,7 @@ class music_core(commands.Cog):
         else:
             await interaction.send("You can't use this command")     
             
-    @commands.slash_command(name="stop-bot", description="Use this command if you want to turn off bot")
+    @commands.slash_command(name="a-stop", description="Use this command if you want to turn off bot")
     async def stop(self, interaction: disnake.CommandInteraction):
         await interaction.response.defer()
         if ((self.is_started) and (self.master == interaction.author.id)):
@@ -236,22 +263,30 @@ class music_core(commands.Cog):
             self.is_canceled = False
             self.stop_continious_music = False
             self.q = []
+            self.playlist = []
             self.users = []
             self.master = None
             await interaction.send("Bot left")
         else:
             await interaction.send("You can't use this command")  
         
-    @commands.slash_command(name="stop-music", description="Use this command if you want to stop the music")
+    @commands.slash_command(name="a-stop-music", description="Use this command if you want to stop the music")
     async def stop_mus(self, interaction: disnake.CommandInteraction):
         await interaction.response.defer()
         if ((self.is_started) and (self.master == interaction.author.id)):
             self.stop_continious_music = True
             await interaction.send("Music succesfully stopped!")
         else:
-            await interaction.send("You can't use this command")  
-
-    @commands.slash_command(name="q-add-to-queue", description="Add songs to queue (Works only with /play_queue command)")
+            await interaction.send("You can't use this command")             
+    # @commands.slash_command(name="a-restart-server", description="This command will completly restart server (ONLY FOR ADMINISTRATORS)")
+    # async def stop_mus(self, interaction: disnake.CommandInteraction):
+    #     await interaction.response.defer()
+    #     if ((self.is_started) and (self.master == interaction.author.id) and (interaction.author.id in config.ADMINISTRATORS)):
+    #         n_process = "main.py"
+    #         os.execv(sys.executable, [sys.executable, n_process])
+    #     else:
+    #         await interaction.send("You can't use this command")
+    @commands.slash_command(name="q-add", description="Add songs to queue (Works only with /play-queue command)")
     async def add_to(self, interaction: disnake.CommandInteraction, index_or_indexes):
         await interaction.response.defer()
         if ((self.is_started) and (self.master == interaction.author.id)):
@@ -284,7 +319,7 @@ class music_core(commands.Cog):
         else:
             await interaction.send("You can't use this command")   
             
-    @commands.slash_command(name="q-queue-remove", description="Remove song (or songs) from your queue")
+    @commands.slash_command(name="q-remove", description="Remove song (or songs) from your queue")
     async def queue_remove(self, interaction:disnake.CommandInteraction, index_or_indexes):
         if ((self.is_started) and (self.master == interaction.author.id)):
             await interaction.response.defer()
@@ -300,7 +335,7 @@ class music_core(commands.Cog):
         else:
             await interaction.send("You can't use this command")
             
-    @commands.slash_command(name="p-pick-playlist", description="Pick one of your playlist to your queue")
+    @commands.slash_command(name="l-playlist-pick", description="Pick one of your playlist to your queue")
     async def playlist_picker_main(self, interaction:disnake.CommandInteraction, name_for_your_playlist):
         if ((self.is_started) and (self.master == interaction.author.id)):
             await interaction.response.defer()
@@ -312,7 +347,7 @@ class music_core(commands.Cog):
         else:
             await interaction.send("You can't use this command")  
                 
-    @commands.slash_command(name="p-create-playlist", description="Create playlist based on your current queue")
+    @commands.slash_command(name="l-playlist-create", description="Create playlist based on your current queue")
     async def playlist_creator_main(self, interaction:disnake.CommandInteraction, name_for_your_playlist):
         if ((self.is_started) and (self.master == interaction.author.id)):
             await interaction.response.defer()
@@ -323,7 +358,7 @@ class music_core(commands.Cog):
         else:
             await interaction.send("You can't use this command")
             
-    @commands.slash_command(name="p-playlists-info", description="Show all avaliable playlists")
+    @commands.slash_command(name="l-playlists-info", description="Show all avaliable playlists")
     async def playlist_counter_main(self, interaction:disnake.CommandInteraction):
         if ((self.is_started) and (self.master == interaction.author.id)):
             await interaction.response.defer()
@@ -337,7 +372,7 @@ class music_core(commands.Cog):
         else:
             await interaction.send("You can't use this command") 
               
-    @commands.slash_command(name="p-playlist-delete", description="Delete one playlist")
+    @commands.slash_command(name="l-playlist-delete", description="Delete one playlist")
     async def playlist_ereser_main(self, interaction:disnake.CommandInteraction, name_of_your_playlist):
         if ((self.is_started) and (self.master == interaction.author.id)):
             await interaction.response.defer()
@@ -350,14 +385,14 @@ class music_core(commands.Cog):
         else:
             await interaction.send("You can't use this command")   
                 
-    @commands.slash_command(name="g-gdrive-add", description="Add your songs from Google drive. Pay attention !")
+    @commands.slash_command(name="a-gdrive-add", description="Add your songs from Google drive. Pay attention !")
     async def gdrive(self, interaction:disnake.CommandInteraction, google_drive_url):
         if ((self.is_started) and (self.master == interaction.author.id)):
             await interaction.response.defer()
             
             gauth = GoogleAuth()
             scope = ['https://www.googleapis.com/auth/drive']
-            gauth.credentials = ServiceAccountCredentials.from_json_keyfile_name("main_music_bot\python-music-bot-382317-6cdbaac0206f.json", scope)
+            gauth.credentials = ServiceAccountCredentials.from_json_keyfile_name("main_music_bot\python-music-bot-382317-08c466190370.json", scope)
             drive = GoogleDrive(gauth)
             
             google_drive_id = str(google_drive_url).split("/")[-1]

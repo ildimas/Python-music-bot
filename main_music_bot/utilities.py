@@ -1,5 +1,6 @@
 import sqlite3
 import disnake
+from disnake import ui
 def id_extractor(url):
     url = url.split("/")[-2]
     return url
@@ -97,7 +98,7 @@ def playlist_eraser(master, name_of_playlist):
     connection.close() 
     if len(db_after) == len(db_before):
         raise BaseException
-
+    
 if __name__ == "__main__":
-    print(d_cheker(["lol"], ["main_music_bot/music_storage/575244511329124352/shadowraze - brawl rap (Лучшая Склейка).mp3"], "sadsda"))
+    pass
         

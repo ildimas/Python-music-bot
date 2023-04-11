@@ -6,11 +6,8 @@ import random
 import os
 import asyncio
 import config
-from disnake import AudioSource
-from disnake import FFmpegAudio
 from disnake import Button, ButtonStyle, SelectMenu, SelectOption
 from disnake import ui
-from disnake.ext.commands import UserConverter
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 from utilities import *
@@ -82,13 +79,13 @@ class music_core(commands.Cog):
     async def next(self, interaction: disnake.CommandInteraction):
         await interaction.response.defer()
         if ((self.is_started) and (self.master == interaction.author.id)):
-                if self.voice_client.is_playing():
-                    self.voice_client.stop()
-                    await interaction.send("Bot have succesfuly skipped a song!")
-                    return
-                else:
-                    await interaction.send("Something went wrong!")
-                    return
+            if self.voice_client.is_playing():
+                self.voice_client.stop()
+                await interaction.send("Bot have succesfuly skipped a song!")
+                return
+            else:
+                await interaction.send("Something went wrong!")
+                return
         else: await interaction.send("You can't use this command")
                 
     @commands.slash_command(name="a-show", description="Show list of avaliable songs")

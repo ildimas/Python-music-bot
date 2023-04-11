@@ -1,6 +1,5 @@
 import disnake
 from disnake.ext import commands
-import os; import sys
 from config import TOKEN, PREFIX
 
 bot = commands.Bot(command_prefix=PREFIX, help_command=None, intents=disnake.Intents.all())

@@ -1,6 +1,4 @@
 import sqlite3
-import disnake
-from disnake import ui
 def id_extractor(url):
     url = url.split("/")[-2]
     return url

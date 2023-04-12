@@ -111,14 +111,14 @@ class music_core(commands.Cog):
                 await self.voice_client.disconnect()
             except:
                 pass
-            process = subprocess.Popen(["python", "main_music_bot\main.py"])
+            process = subprocess.Popen(["python", "main_music_bot/main.py"])
             
             pid = process.pid
             
             os.kill(pid, signal.SIGTERM)
             
             
-            os.execv(sys.executable, ['python'] + ["main_music_bot\main.py"]) 
+            os.execv(sys.executable, ['python'] + ["main_music_bot/main.py"]) 
         else:
             await interaction.send("You can't use this command use /start") 
             
@@ -382,7 +382,7 @@ class music_core(commands.Cog):
             
             gauth = GoogleAuth()
             scope = ['https://www.googleapis.com/auth/drive']
-            gauth.credentials = ServiceAccountCredentials.from_json_keyfile_name("main_music_bot\python-music-bot-382317-08c466190370.json", scope)
+            gauth.credentials = ServiceAccountCredentials.from_json_keyfile_name("main_music_bot/python-music-bot-382317-08c466190370.json", scope)
             drive = GoogleDrive(gauth)
             
             google_drive_id = str(google_drive_url).split("/")[-1]

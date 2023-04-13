@@ -2,3 +2,4 @@ disnake
 asyncio
 pydrive
 PyNaCl
+pytube

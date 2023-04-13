@@ -15,6 +15,8 @@ from pydrive.auth import *
 import sys
 import signal
 import subprocess
+from pytube import YouTube
+
 
 class music_core(commands.Cog):
     def __init__(self, bot):
@@ -431,7 +433,51 @@ class music_core(commands.Cog):
                 await interaction.send(f"Something went wrong! {e}")
                 return
         else:
-            await interaction.send("You can't use this command")     
+            await interaction.send("You can't use this command")
+            
+    @commands.slash_command(name="a-youtube-download", description="Download song or songs from you tube by their url")
+    async def youtube_download(self, interaction: disnake.CommandInteraction, urlss):  
+        await interaction.response.defer() 
+        if ((self.is_started) and (self.master == interaction.author.id)):
+            try:
+                url_l = urlss.split(" ")
+                connection = sqlite3.connect("db.sqlite3")
+                for url in url_l:
+                    yt = YouTube(url)
+                    title = tittlenormalizer(yt.title) 
+                    stream = yt.streams.filter(only_audio=True).first()
+                    stream.download(output_path="main_music_bot\music_storage\\575244511329124352", filename=f"{title}.mp3")
+                    connection.execute('INSERT INTO music (ID, Music_name, Music_url, Music_google_id, User_id) VALUES (?, ?, ?, ?, ?)',(0, title,  f"main_music_bot\music_storage\{interaction.author.id}\{title}.mp3", "YoutubeID", interaction.author.id))
+                    connection.commit()
+                connection.close()
+                refactor_sqlite_db(interaction.author.id)
+                self.db_list = update_self_db(interaction.author.id)
+                self.num_of_avaliable_pages = round(len(self.db_list) / 30)
+                await interaction.edit_original_message("Download finished!")
+            except Exception as e:
+                print(e)
+                await interaction.send("Something went wrong")
+                return
+        else:
+            await interaction.send("You can't use this command")
+    
+    @commands.slash_command(name="a-youtube-play", description="Play a single video in your discord chanell")
+    async def youtube_play(self, interaction: disnake.CommandInteraction, url):  
+        await interaction.response.defer() 
+        if ((self.is_started) and (self.master == interaction.author.id)):
+           yt = YouTube(url)
+           audio_stream = yt.streams.filter(only_audio=True).first().url
+           
+           audio_source = disnake.FFmpegPCMAudio(audio_stream)
+           
+           self.voice_client.play(audio_source)
+           while self.voice_client.is_playing():
+               await asyncio.sleep(1)
+           
+           
+        else:
+            await interaction.send("You can't use this command")
+            
             
 def setup(bot: commands.Bot):
     bot.add_cog(music_core(bot))

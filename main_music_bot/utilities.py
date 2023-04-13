@@ -96,7 +96,18 @@ def playlist_eraser(master, name_of_playlist):
     connection.close() 
     if len(db_after) == len(db_before):
         raise BaseException
-    
+def tittlenormalizer(stroke):
+    ban_list = ["<", ">", ":", "\"", "/", "\\", "|", "?", "*"]
+    res_stroke = ""
+    for i in range(len(stroke)):
+        if (stroke[i] in ban_list) and i == 0:
+            res_stroke += ""
+        elif (stroke[i] in ban_list) and i != 0:
+            res_stroke += ""
+        else:
+            res_stroke += stroke[i]
+    return res_stroke
+            
 if __name__ == "__main__":
-    pass
+    print(tittlenormalizer("2007 ГОД | Эмо, iPhone, Рататуй, Бакуган, Assassin's Creed, Ведьмак, Галилео, 2x2 | ПОПКУЛЬТ"))
         

@@ -395,7 +395,7 @@ class music_core(commands.Cog):
             
             gauth = GoogleAuth()
             scope = ['https://www.googleapis.com/auth/drive']
-            gauth.credentials = ServiceAccountCredentials.from_json_keyfile_name("main_music_bot/python-music-bot-382317-08c466190370.json", scope)
+            gauth.credentials = ServiceAccountCredentials.from_json_keyfile_name("main_music_bot/service_credentials.json", scope)
             drive = GoogleDrive(gauth)
             
             google_drive_id = str(google_drive_url).split("/")[-1]
@@ -472,7 +472,7 @@ class music_core(commands.Cog):
         else:
             await interaction.send("You can't use this command")
     
-    @commands.slash_command(name="a-youtube-play", description="Play a single video in your discord chanell")
+    @commands.slash_command(name="p-play-youtube", description="Play a single video in your discord chanell")
     async def youtube_play(self, interaction: disnake.CommandInteraction, url):  
         await interaction.response.defer() 
         if ((self.is_started) and (self.master == interaction.author.id)):

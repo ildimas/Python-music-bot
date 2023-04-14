@@ -1,4 +1,5 @@
 import sqlite3
+import disnake
 def id_extractor(url):
     url = url.split("/")[-2]
     return url
@@ -107,7 +108,10 @@ def tittlenormalizer(stroke):
         else:
             res_stroke += stroke[i]
     return res_stroke
-            
+def extractpath(index, db):
+    audio_source = disnake.FFmpegPCMAudio((db[int(index) - 1])[2])
+    n_name = ((db[int(index) - 1])[1])
+    return audio_source, n_name
 if __name__ == "__main__":
     print(tittlenormalizer("2007 ГОД | Эмо, iPhone, Рататуй, Бакуган, Assassin's Creed, Ведьмак, Галилео, 2x2 | ПОПКУЛЬТ"))
         

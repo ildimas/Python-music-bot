@@ -24,7 +24,7 @@ class music_core(commands.Cog):
         self.voice_client = None
         self.db_list = []
         self.is_started = False
-        self.is_canceled = False
+    
         self.stop_continious_music = False
         self.q = []
         self.playlist = []
@@ -39,8 +39,10 @@ class music_core(commands.Cog):
             self.master = interaction.author.id
         self.db_list = update_self_db(interaction.author.id)
         self.num_of_avaliable_pages = round(len(self.db_list) / 30)
+        if self.num_of_avaliable_pages == 0:
+            self.num_of_avaliable_pages = 1
         self.is_started = True
-        self.is_canceled = False
+        
         #! Voice_client init
         await interaction.send("Bot has succesfuly started!")
         try:    
@@ -64,12 +66,19 @@ class music_core(commands.Cog):
         base_song_view.add_item(self.stop_button)
         base_song_view.add_item(self.leave_button)
         self.song_view = base_song_view
+        
         queue_view = ui.View()
         queue_view.add_item(self.next_button)
         queue_view.add_item(self.stop_button)
         queue_view.add_item(self.leave_button)
         queue_view.add_item(self.queue_button)
         self.queue_view = queue_view
+        
+        youtube_view = ui.View()
+        youtube_view.add_item(self.stop_button)
+        youtube_view.add_item(self.leave_button)
+        self.youtube_view = youtube_view
+        
         self.directory = "main_music_bot\music_storage" + "\\" + f"{interaction.author.id}" 
         
         if not os.path.exists(self.directory):
@@ -96,9 +105,12 @@ class music_core(commands.Cog):
         if (self.is_started):
             if int(number) in range(1, self.num_of_avaliable_pages + 1):
                 db = self.db_list; fin_stroke = f"You are on the {number}/{self.num_of_avaliable_pages} page \n"
-                for i in range((int(number) - 1) * 30, len(db)):
+                end_ind = ((int(number) - 1) * 30) + 30
+                if end_ind > len(db):
+                    end_ind = len(db)
+                for i in range((int(number) - 1) * 30, end_ind):
                     fin_stroke = fin_stroke + str((db[i])[0]) + "  " + str((db[i])[1]) + "\n" 
-                    if len(fin_stroke) > 1900:
+                    if len(fin_stroke) > 2000:
                         break    
                 await interaction.send(fin_stroke)
             else: await interaction.send("Wrong number...")
@@ -130,12 +142,15 @@ class music_core(commands.Cog):
         if (self.is_started):
             db = self.db_list
             fin_stroke = ""
-            while True:
+            unique_indexes = []
+            for i in range(30):
                 y = random.randint(0, len(db)-1)
-                fin_stroke = fin_stroke + str((db[y])[0]) + "  " + str((db[y])[1]) + "\n" 
-                if len(fin_stroke) > 1800:
-                    break    
-            await interaction.response.send_message(fin_stroke) 
+                if y not in unique_indexes:
+                    fin_stroke = fin_stroke + str((db[y])[0]) + "  " + str((db[y])[1]) + "\n" 
+                    unique_indexes.append(y)
+                if len(fin_stroke) > 2000:
+                    break
+            await interaction.send(fin_stroke) 
         else:
             await interaction.send("You can't use this command use /start") 
     
@@ -144,17 +159,15 @@ class music_core(commands.Cog):
         await interaction.response.defer()
         if ((self.is_started) and (self.master == interaction.author.id)):
             try:
-                audio_file_path = (self.db_list[int(index) - 1])[2]
-                n_name = ((self.db_list[int(index) - 1])[1])
-            except(IndexError):
+                audio_source, n_name = extractpath(int(index), self.db_list)
+            except(IndexError) as e:
+                print(e)
                 await interaction.send("Wrong index")
                 return
-            audio_sourse = disnake.FFmpegPCMAudio(audio_file_path)
-            await interaction.send(f"Now playing: {n_name}")
             try:
                 view = self.song_view
                 await interaction.send(f"Now playing: {n_name}", view=view)
-                self.voice_client.play(audio_sourse)
+                self.voice_client.play(audio_source)
                 while self.voice_client.is_playing():
                     if self.stop_continious_music == True:
                         self.voice_client.stop()
@@ -163,7 +176,8 @@ class music_core(commands.Cog):
                     else:
                         await asyncio.sleep(1)
                 self.voice_client.stop()
-            except (BaseException):
+            except Exception as e:
+                print(e)
                 pass
         else:
             await interaction.send("You can't use this command")            
@@ -172,13 +186,11 @@ class music_core(commands.Cog):
     @commands.slash_command(name="p-play-random", description="Bot will play random songs from your song list continiously")
     async def play_random(self, interaction: disnake.CommandInteraction):
         await interaction.response.defer()
-        while True:
-            if ((self.is_started) and (self.master == interaction.author.id)):
+        if ((self.is_started) and (self.master == interaction.author.id)):
+            while True:
                 index = random.randint(0, len(self.db_list) - 1)
-                audio_file_path = (self.db_list[index])[2]
-                audio_sourse = disnake.FFmpegPCMAudio(audio_file_path)
-                self.voice_client.play(audio_sourse)
-                n_name = ((self.db_list[index])[1])
+                audio_source, n_name = extractpath(index, self.db_list)
+                self.voice_client.play(audio_source)
                 view = self.song_view
                 await interaction.send(f"Now playing: {n_name}", view=view)
                 try:
@@ -192,8 +204,8 @@ class music_core(commands.Cog):
                     self.voice_client.stop()
                 except (AttributeError):
                     return
-            else:
-                await interaction.send("You can't use this command")  
+        else:
+            await interaction.send("You can't use this command")  
                     
     @commands.slash_command(name="p-play-continious", description="Bot will play the song with the entered index on repeat")
     async def play_cont(self, interaction: disnake.CommandInteraction, index):
@@ -203,8 +215,8 @@ class music_core(commands.Cog):
                 n_name = ((self.db_list[int(index) - 1])[1])
                 await interaction.send(f"Now playing continious: {n_name}")
                 view = self.song_view
-                await interaction.send(f"Now playing: {n_name}", view=view)
                 while True:
+                    await interaction.send(f"Now playing: {n_name}", view=view)
                     audio_file_path = (self.db_list[int(index) - 1])[2]
                     audio_sourse = disnake.FFmpegPCMAudio(audio_file_path)
                     self.voice_client.play(audio_sourse)
@@ -231,11 +243,10 @@ class music_core(commands.Cog):
         if ((self.is_started) and (self.master == interaction.author.id)):
             view = self.queue_view 
             while len(self.q) != 0:
-                url, name = self.q[0][1], self.q[0][2]
-                audio_sourse = disnake.FFmpegPCMAudio(url)
-                await interaction.send(f"Now playing: {name}, songs remaining: {len(self.q) - 1}", view=view)
+                audio_source, n_name = disnake.FFmpegPCMAudio(self.q[0][1]), self.q[0][2]
+                await interaction.send(f"Now playing: {n_name}, songs remaining: {len(self.q) - 1}", view=view)
                 try:
-                    self.voice_client.play(audio_sourse)
+                    self.voice_client.play(audio_source)
                     while self.voice_client.is_playing():
                         if self.stop_continious_music == True:
                             self.voice_client.stop()
@@ -245,13 +256,14 @@ class music_core(commands.Cog):
                             await asyncio.sleep(1)
                     self.voice_client.stop()
                     self.q.remove(self.q[0])
-                except (BaseException):
+                except Exception as e:
+                    print(e)
                     pass
             await interaction.send("Your queue is empty, add songs with a command /add-to-queue")
         else:
             await interaction.send("You can't use this command")     
             
-    @commands.slash_command(name="a-stop", description="Use this command if you want to turn off bot")
+    @commands.slash_command(name="a-stop-bot", description="Use this command if you want to turn off bot")
     async def stop(self, interaction: disnake.CommandInteraction):
         await interaction.response.defer()
         if ((self.is_started) and (self.master == interaction.author.id)):
@@ -259,7 +271,6 @@ class music_core(commands.Cog):
             self.voice_client = None
             self.db_list = []
             self.is_started = False
-            self.is_canceled = False
             self.stop_continious_music = False
             self.q = []
             self.playlist = []
@@ -465,16 +476,25 @@ class music_core(commands.Cog):
     async def youtube_play(self, interaction: disnake.CommandInteraction, url):  
         await interaction.response.defer() 
         if ((self.is_started) and (self.master == interaction.author.id)):
-           yt = YouTube(url)
-           audio_stream = yt.streams.filter(only_audio=True).first().url
-           
-           audio_source = disnake.FFmpegPCMAudio(audio_stream)
-           
-           self.voice_client.play(audio_source)
-           while self.voice_client.is_playing():
-               await asyncio.sleep(1)
-           
-           
+            try:
+                yt = YouTube(url)
+                audio_stream = yt.streams.filter(only_audio=True).first().url
+                title = tittlenormalizer(yt.title)
+            except Exception as e:
+                print(e)
+                await interaction.send("Invalid url")
+                return
+            await interaction.send(f"Now playing: {title}", view=self.youtube_view)
+            audio_source = disnake.FFmpegPCMAudio(audio_stream)
+            self.voice_client.play(audio_source)
+            while self.voice_client.is_playing():
+                if self.stop_continious_music == True:
+                        self.voice_client.stop()
+                        self.stop_continious_music = False
+                        return
+                else:
+                    await asyncio.sleep(1)
+            self.voice_client.stop()
         else:
             await interaction.send("You can't use this command")
             

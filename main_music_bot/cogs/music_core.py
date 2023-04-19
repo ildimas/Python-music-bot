@@ -17,7 +17,6 @@ import signal
 import subprocess
 from pytube import YouTube
 
-
 class music_core(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -30,6 +29,7 @@ class music_core(commands.Cog):
         self.playlist = []
         self.users = []
         self.master = None
+        
     
     @commands.slash_command(name="a-start", description="Use this command to start bot")
     async def start(self, interaction: disnake.CommandInteraction):
@@ -42,7 +42,33 @@ class music_core(commands.Cog):
         if self.num_of_avaliable_pages == 0:
             self.num_of_avaliable_pages = 1
         self.is_started = True
+        #!Buttons init
+        self.next_button = ui.Button(style=ButtonStyle.green, label="Next song!")
+        self.next_button.callback = self.nextt
+        self.stop_button = ui.Button(style=ButtonStyle.green, label="Stop music")
+        self.stop_button.callback = self.stop_mus
+        self.leave_button = ui.Button(style=ButtonStyle.danger, label="Disconnect Bot")
+        self.leave_button.callback = self.stop_bot
+        self.queue_button = ui.Button(style=ButtonStyle.blurple, label="Show a queue")
+        self.queue_button.callback = self.queue
+        #!Base views
+        base_song_view = ui.View(timeout=None)
+        base_song_view.add_item(self.next_button)
+        base_song_view.add_item(self.stop_button)
+        base_song_view.add_item(self.leave_button)
+        self.song_view = base_song_view
         
+        queue_view = ui.View(timeout=None)
+        queue_view.add_item(self.next_button)
+        queue_view.add_item(self.stop_button)
+        queue_view.add_item(self.leave_button)
+        queue_view.add_item(self.queue_button)
+        self.queue_view = queue_view
+        
+        youtube_view = ui.View(timeout=None)
+        youtube_view.add_item(self.stop_button)
+        youtube_view.add_item(self.leave_button)
+        self.youtube_view = youtube_view
         #! Voice_client init
         await interaction.send("Bot has succesfuly started!")
         try:    
@@ -51,33 +77,7 @@ class music_core(commands.Cog):
         except (AttributeError):
             await interaction.send(f"You are not in chanel")
             return  
-        #!Buttons init
-        self.next_button = ui.Button(style=ButtonStyle.green, label="Next song!")
-        self.next_button.callback = self.next
-        self.stop_button = ui.Button(style=ButtonStyle.green, label="Stop music")
-        self.stop_button.callback = self.stop_mus
-        self.leave_button = ui.Button(style=ButtonStyle.danger, label="Disconnect Bot")
-        self.leave_button.callback = self.stop
-        self.queue_button = ui.Button(style=ButtonStyle.blurple, label="Show a queue")
-        self.queue_button.callback = self.queue
-        #!Base views
-        base_song_view = ui.View()
-        base_song_view.add_item(self.next_button)
-        base_song_view.add_item(self.stop_button)
-        base_song_view.add_item(self.leave_button)
-        self.song_view = base_song_view
         
-        queue_view = ui.View()
-        queue_view.add_item(self.next_button)
-        queue_view.add_item(self.stop_button)
-        queue_view.add_item(self.leave_button)
-        queue_view.add_item(self.queue_button)
-        self.queue_view = queue_view
-        
-        youtube_view = ui.View()
-        youtube_view.add_item(self.stop_button)
-        youtube_view.add_item(self.leave_button)
-        self.youtube_view = youtube_view
         
         self.directory = "main_music_bot\music_storage" + "\\" + f"{interaction.author.id}" 
         
@@ -87,7 +87,7 @@ class music_core(commands.Cog):
         else: await interaction.send(f"Welcome back {interaction.author}, You are my master today!")
             
     @commands.slash_command(name="a-next", description="Make bot stop music")
-    async def next(self, interaction: disnake.CommandInteraction):
+    async def nextt(self, interaction: disnake.CommandInteraction):
         await interaction.response.defer()
         if ((self.is_started) and (self.master == interaction.author.id)):
             if self.voice_client.is_playing():
@@ -264,7 +264,7 @@ class music_core(commands.Cog):
             await interaction.send("You can't use this command")     
             
     @commands.slash_command(name="a-stop-bot", description="Use this command if you want to turn off bot")
-    async def stop(self, interaction: disnake.CommandInteraction):
+    async def stop_bot(self, interaction: disnake.CommandInteraction):
         await interaction.response.defer()
         if ((self.is_started) and (self.master == interaction.author.id)):
             await self.voice_client.disconnect()
@@ -489,16 +489,16 @@ class music_core(commands.Cog):
             self.voice_client.play(audio_source)
             while self.voice_client.is_playing():
                 if self.stop_continious_music == True:
-                        self.voice_client.stop()
-                        self.stop_continious_music = False
-                        return
+                    self.voice_client.stop()
+                    self.stop_continious_music = False
+                    return
                 else:
                     await asyncio.sleep(1)
             self.voice_client.stop()
         else:
             await interaction.send("You can't use this command")
             
-            
 def setup(bot: commands.Bot):
     bot.add_cog(music_core(bot))
+    
     

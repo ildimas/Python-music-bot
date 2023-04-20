@@ -1,5 +1,6 @@
 import sqlite3
 import disnake
+from disnake import ui
 def id_extractor(url):
     url = url.split("/")[-2]
     return url
@@ -112,6 +113,17 @@ def extractpath(index, db):
     audio_source = disnake.FFmpegPCMAudio((db[int(index) - 1])[2])
     n_name = ((db[int(index) - 1])[1])
     return audio_source, n_name
+
+def view_constructor(view, list_of_item_to_add):
+    for i in range(len(list_of_item_to_add)):
+        view.add_item(list_of_item_to_add[i])
+    return view
+
+def button_constructor(style, label, callback):
+    button = ui.Button(style=style, label=label)
+    button.callback = callback
+    return button
+
 if __name__ == "__main__":
     print(tittlenormalizer("2007 ГОД | Эмо, iPhone, Рататуй, Бакуган, Assassin's Creed, Ведьмак, Галилео, 2x2 | ПОПКУЛЬТ"))
         

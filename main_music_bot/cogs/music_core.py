@@ -43,41 +43,27 @@ class music_core(commands.Cog):
             self.num_of_avaliable_pages = 1
         self.is_started = True
         #!Buttons init
-        self.next_button = ui.Button(style=ButtonStyle.green, label="Next song!")
-        self.next_button.callback = self.nextt
-        self.stop_button = ui.Button(style=ButtonStyle.green, label="Stop music")
-        self.stop_button.callback = self.stop_mus
-        self.leave_button = ui.Button(style=ButtonStyle.danger, label="Disconnect Bot")
-        self.leave_button.callback = self.stop_bot
-        self.queue_button = ui.Button(style=ButtonStyle.blurple, label="Show a queue")
-        self.queue_button.callback = self.queue
+        self.next_button = button_constructor(ButtonStyle.green, "Next song!", self.nextt)
+        self.stop_button = button_constructor(ButtonStyle.green, "Stop music", self.stop_mus)
+        self.leave_button = button_constructor(ButtonStyle.danger, "Disconnect Bot", self.stop_bot)
+        self.queue_button = button_constructor(ButtonStyle.blurple, "Show a queue", self.queue)
         #!Base views
         base_song_view = ui.View(timeout=None)
-        base_song_view.add_item(self.next_button)
-        base_song_view.add_item(self.stop_button)
-        base_song_view.add_item(self.leave_button)
-        self.song_view = base_song_view
+        self.base_song_view = view_constructor(base_song_view, [self.next_button, self.stop_button, self.leave_button])      
         
         queue_view = ui.View(timeout=None)
-        queue_view.add_item(self.next_button)
-        queue_view.add_item(self.stop_button)
-        queue_view.add_item(self.leave_button)
-        queue_view.add_item(self.queue_button)
-        self.queue_view = queue_view
+        self.queue_view = view_constructor(queue_view, [self.next_button, self.stop_button, self.leave_button, self.queue_button])
         
         youtube_view = ui.View(timeout=None)
-        youtube_view.add_item(self.stop_button)
-        youtube_view.add_item(self.leave_button)
-        self.youtube_view = youtube_view
+        self.youtube_view = view_constructor(youtube_view, [self.stop_button, self.leave_button])
         #! Voice_client init
-        await interaction.send("Bot has succesfuly started!")
         try:    
             channel = interaction.author.voice.channel        
             self.voice_client = await channel.connect()
+            await interaction.send("Bot has succesfuly started!")
         except (AttributeError):
             await interaction.send(f"You are not in chanel")
             return  
-        
         
         self.directory = "main_music_bot\music_storage" + "\\" + f"{interaction.author.id}" 
         
@@ -165,7 +151,7 @@ class music_core(commands.Cog):
                 await interaction.send("Wrong index")
                 return
             try:
-                view = self.song_view
+                view = self.base_song_view
                 await interaction.send(f"Now playing: {n_name}", view=view)
                 self.voice_client.play(audio_source)
                 while self.voice_client.is_playing():
@@ -191,7 +177,7 @@ class music_core(commands.Cog):
                 index = random.randint(0, len(self.db_list) - 1)
                 audio_source, n_name = extractpath(index, self.db_list)
                 self.voice_client.play(audio_source)
-                view = self.song_view
+                view = self.base_song_view
                 await interaction.send(f"Now playing: {n_name}", view=view)
                 try:
                     while self.voice_client.is_playing():
@@ -214,7 +200,7 @@ class music_core(commands.Cog):
             try:
                 n_name = ((self.db_list[int(index) - 1])[1])
                 await interaction.send(f"Now playing continious: {n_name}")
-                view = self.song_view
+                view = self.base_song_view
                 while True:
                     await interaction.send(f"Now playing: {n_name}", view=view)
                     audio_file_path = (self.db_list[int(index) - 1])[2]

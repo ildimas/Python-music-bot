@@ -114,7 +114,8 @@ def extractpath(index, db):
     n_name = ((db[int(index) - 1])[1])
     return audio_source, n_name
 
-def view_constructor(view, list_of_item_to_add):
+def view_constructor(list_of_item_to_add):
+    view = ui.View(timeout=None)
     for i in range(len(list_of_item_to_add)):
         view.add_item(list_of_item_to_add[i])
     return view

@@ -23,7 +23,6 @@ class music_core(commands.Cog):
         self.voice_client = None
         self.db_list = []
         self.is_started = False
-    
         self.stop_continious_music = False
         self.q = []
         self.playlist = []
@@ -48,14 +47,9 @@ class music_core(commands.Cog):
         self.leave_button = button_constructor(ButtonStyle.danger, "Disconnect Bot", self.stop_bot)
         self.queue_button = button_constructor(ButtonStyle.blurple, "Show a queue", self.queue)
         #!Base views
-        base_song_view = ui.View(timeout=None)
-        self.base_song_view = view_constructor(base_song_view, [self.next_button, self.stop_button, self.leave_button])      
-        
-        queue_view = ui.View(timeout=None)
-        self.queue_view = view_constructor(queue_view, [self.next_button, self.stop_button, self.leave_button, self.queue_button])
-        
-        youtube_view = ui.View(timeout=None)
-        self.youtube_view = view_constructor(youtube_view, [self.stop_button, self.leave_button])
+        self.base_song_view = view_constructor([self.next_button, self.stop_button, self.leave_button])      
+        self.queue_view = view_constructor([self.next_button, self.stop_button, self.leave_button, self.queue_button])
+        self.youtube_view = view_constructor([self.stop_button, self.leave_button])
         #! Voice_client init
         try:    
             channel = interaction.author.voice.channel        
@@ -425,6 +419,8 @@ class music_core(commands.Cog):
                 refactor_sqlite_db(interaction.author.id)
                 self.db_list = update_self_db(interaction.author.id)
                 self.num_of_avaliable_pages = round(len(self.db_list) / 30)
+                if self.num_of_avaliable_pages == 0:
+                    self.num_of_avaliable_pages = 1
                 await interaction.edit_original_message("Download finished!")
             except Exception as e:
                 await interaction.send(f"Something went wrong! {e}")
@@ -432,24 +428,25 @@ class music_core(commands.Cog):
         else:
             await interaction.send("You can't use this command")
             
-    @commands.slash_command(name="a-youtube-download", description="Download song or songs from you tube by their url")
-    async def youtube_download(self, interaction: disnake.CommandInteraction, urlss):  
+    @commands.slash_command(name="a-youtube-download", description="Download song from youtube by their url")
+    async def youtube_download(self, interaction: disnake.CommandInteraction, url):  
         await interaction.response.defer() 
         if ((self.is_started) and (self.master == interaction.author.id)):
             try:
-                url_l = urlss.split(" ")
                 connection = sqlite3.connect("db.sqlite3")
-                for url in url_l:
-                    yt = YouTube(url)
-                    title = tittlenormalizer(yt.title) 
-                    stream = yt.streams.filter(only_audio=True).first()
-                    stream.download(output_path="main_music_bot\music_storage\\575244511329124352", filename=f"{title}.mp3")
-                    connection.execute('INSERT INTO music (ID, Music_name, Music_url, Music_google_id, User_id) VALUES (?, ?, ?, ?, ?)',(0, title,  f"main_music_bot\music_storage\{interaction.author.id}\{title}.mp3", "YoutubeID", interaction.author.id))
-                    connection.commit()
+                yt = YouTube(url)
+                title = tittlenormalizer(yt.title) 
+                stream = yt.streams.filter(only_audio=True).first()
+                output_path = self.directory
+                stream.download(output_path=f"{output_path}", filename=f"{title}.mp3")
+                connection.execute('INSERT INTO music (ID, Music_name, Music_url, Music_google_id, User_id) VALUES (?, ?, ?, ?, ?)',(0, title, f"{output_path}/{title}.mp3", "YoutubeID", interaction.author.id))
+                connection.commit()
                 connection.close()
                 refactor_sqlite_db(interaction.author.id)
                 self.db_list = update_self_db(interaction.author.id)
                 self.num_of_avaliable_pages = round(len(self.db_list) / 30)
+                if self.num_of_avaliable_pages == 0:
+                    self.num_of_avaliable_pages = 1
                 await interaction.edit_original_message("Download finished!")
             except Exception as e:
                 print(e)
@@ -461,26 +458,30 @@ class music_core(commands.Cog):
     @commands.slash_command(name="p-play-youtube", description="Play a single video in your discord chanell")
     async def youtube_play(self, interaction: disnake.CommandInteraction, url):  
         await interaction.response.defer() 
-        if ((self.is_started) and (self.master == interaction.author.id)):
-            try:
-                yt = YouTube(url)
-                audio_stream = yt.streams.filter(only_audio=True).first().url
-                title = tittlenormalizer(yt.title)
-            except Exception as e:
-                print(e)
-                await interaction.send("Invalid url")
-                return
-            await interaction.send(f"Now playing: {title}", view=self.youtube_view)
-            audio_source = disnake.FFmpegPCMAudio(audio_stream)
-            self.voice_client.play(audio_source)
-            while self.voice_client.is_playing():
-                if self.stop_continious_music == True:
-                    self.voice_client.stop()
-                    self.stop_continious_music = False
+        try:
+            if ((self.is_started) and (self.master == interaction.author.id)):
+                try:
+                    yt = YouTube(url)
+                    audio_stream = yt.streams.filter(only_audio=True).first().url
+                    title = tittlenormalizer(yt.title)
+                except Exception as e:
+                    print(e)
+                    await interaction.send("Invalid url")
                     return
-                else:
-                    await asyncio.sleep(1)
-            self.voice_client.stop()
+                await interaction.send(f"Now playing: {title}", view=self.youtube_view)
+                audio_source = disnake.FFmpegPCMAudio(audio_stream)
+                self.voice_client.play(audio_source)
+                while self.voice_client.is_playing():
+                    if self.stop_continious_music == True:
+                        self.voice_client.stop()
+                        self.stop_continious_music = False
+                        return
+                    else:
+                        await asyncio.sleep(1)
+                self.voice_client.stop()
+        except (Exception) as e:
+            print(e)
+            await interaction.send("Something went wrong...")
         else:
             await interaction.send("You can't use this command")
             
